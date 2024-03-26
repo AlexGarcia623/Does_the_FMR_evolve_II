@@ -378,6 +378,94 @@ def get_z0_alpha(sim,STARS_OR_GAS='gas'):
     argmin = np.argmin(disps)
 
     return round( alphas[argmin], 2 ), a_s[argmin], b_s[argmin]
+
+def plot_fake_MZR(sim,alpha_z0,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS'):
+    
+    STARS_OR_GAS = STARS_OR_GAS.upper()
+    sim = sim.upper()
+    
+    snapshots, snap2z, BLUE_DIR = switch_sim(sim)
+        
+    z0_MZR = None
+    z0_SFMS = None
+    
+    for index, snap in enumerate(snapshots):
+        
+        star_mass, Z_true, SFR = get_one_redshift(BLUE_DIR,snap,
+                                                 STARS_OR_GAS=STARS_OR_GAS)
+        
+        MZR_M_real, MZR_Z_real, real_SFR = getMedians(star_mass,Z_true,SFR,
+                                                      return_masks=False)
+        
+        if index == 0:
+            z0_MZR = interp1d(MZR_M_real, MZR_Z_real, fill_value='extrapolate')
+            z0_SFMS = interp1d(MZR_M_real, real_SFR, fill_value='extrapolate')
+            
+        ax_real.plot( MZR_M_real, MZR_Z_real, color=f'C{index}',
+                      label=r'$z=%s$' %index)
+        
+        Z_pred = z0_MZR(star_mass) - alpha_z0 * np.log10(SFR / z0_SFMS(star_mass))
+        
+        MZR_M_fake, MZR_Z_fake, fake_SFR = getMedians(star_mass,Z_pred,SFR,
+                                                      return_masks=False)
+        
+        ax_fake.plot( MZR_M_fake, MZR_Z_fake, color=f'C{index}',
+                      label=r'$z=%s$' %index)
+        
+        offset = MZR_Z_real - MZR_Z_fake
+        
+        ax_offsets.plot( MZR_M_real, offset, color=f'C{index}',
+                      label=r'$z=%s$' %index )
+        
+def plot_fake_MZR_find_alpha(sim,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS'):
+    
+    STARS_OR_GAS = STARS_OR_GAS.upper()
+    sim = sim.upper()
+    
+    snapshots, snap2z, BLUE_DIR = switch_sim(sim)
+        
+    z0_MZR = None
+    z0_SFMS = None
+    
+    for index, snap in enumerate(snapshots):
+        
+        star_mass, Z_true, SFR = get_one_redshift(BLUE_DIR,snap,
+                                                 STARS_OR_GAS=STARS_OR_GAS)
+        
+        MZR_M_real, MZR_Z_real, real_SFR = getMedians(star_mass,Z_true,SFR,
+                                                      return_masks=False)
+        
+        if index == 0:
+            z0_MZR = interp1d(MZR_M_real, MZR_Z_real, fill_value='extrapolate')
+            z0_SFMS = interp1d(MZR_M_real, real_SFR, fill_value='extrapolate')
+            
+        ax_real.plot( MZR_M_real, MZR_Z_real, color=f'C{index}',
+                      label=r'$z=%s$' %index)
+        
+        alphas = np.linspace(0,1,100)
+        total_offsets = np.empty_like(alphas)
+        
+        for j, alpha in enumerate(alphas):
+        
+            MZR_Z_fake = z0_MZR(MZR_M_real) - alpha * np.log10(real_SFR / z0_SFMS(MZR_M_real))
+
+            ##### WHAT DO WE WANT TO DO ABOUT THIS #####
+            total_offsets[j] = np.sum(np.abs(MZR_Z_real - MZR_Z_fake))
+            #np.median(np.abs(MZR_Z_real - MZR_Z_fake))
+            
+        best_alpha = alphas[np.argmin(total_offsets)]
+        print(f'{sim.upper()} z={index}: alpha = {best_alpha:.2f}')
+        
+        MZR_Z_fake = z0_MZR(MZR_M_real) - best_alpha * np.log10(real_SFR / z0_SFMS(MZR_M_real))
+        
+        offset = MZR_Z_real - MZR_Z_fake
+        
+        ax_fake.plot( MZR_M_real, MZR_Z_fake, color=f'C{index}',
+                      label=r'$z=%s$' %index)
+        
+        ax_offsets.plot( MZR_M_real, offset, color=f'C{index}',
+                      label=r'$z=%s$' %index )
+        
     
 def modified_FMR(sim,one_slope=True,STARS_OR_GAS="gas"):
     STARS_OR_GAS = STARS_OR_GAS.upper()
@@ -395,7 +483,7 @@ def modified_FMR(sim,one_slope=True,STARS_OR_GAS="gas"):
     redshifts  = []
     redshift   = 0
     
-    z0_alpha, *_ =get_z0_alpha(sim)
+    z0_alpha, *_ = get_z0_alpha(sim)
         
     for snap in snapshots:
         currentDir = BLUE_DIR + 'snap%s/' %snap
@@ -483,6 +571,110 @@ def modified_FMR(sim,one_slope=True,STARS_OR_GAS="gas"):
     a, b = np.polyfit( muCurrent, Z_use, 1 )
 
     return z0_alpha, a, b
+
+def modified_FMR_wrong_alpha(sim,one_slope=True,STARS_OR_GAS="gas",
+                             alpha=0.0):
+    STARS_OR_GAS = STARS_OR_GAS.upper()
+    
+    snapshots, snap2z, BLUE_DIR = switch_sim(sim)
+    
+    all_Zgas      = []
+    all_Zstar     = []
+    all_star_mass = []
+    all_gas_mass  = []
+    all_SFR       = []
+    all_R_gas     = []
+    all_R_star    = []
+    
+    redshifts  = []
+    redshift   = 0
+            
+    for snap in snapshots:
+        currentDir = BLUE_DIR + 'snap%s/' %snap
+
+        Zgas      = np.load( currentDir + 'Zgas.npy' )
+        Zstar     = np.load( currentDir + 'Zstar.npy' ) 
+        star_mass = np.load( currentDir + 'Stellar_Mass.npy'  )
+        gas_mass  = np.load( currentDir + 'Gas_Mass.npy' )
+        SFR       = np.load( currentDir + 'SFR.npy' )
+        R_gas     = np.load( currentDir + 'R_gas.npy' )
+        R_star    = np.load( currentDir + 'R_star.npy' )
+        
+        sfms_idx = sfmscut(star_mass, SFR)
+
+        desired_mask = ((star_mass > 1.00E+01**(m_star_min)) &
+                        (star_mass < 1.00E+01**(m_star_max)) &
+                        (gas_mass  > 1.00E+01**(m_gas_min))  &
+                        (sfms_idx))
+        
+        gas_mass  =  gas_mass[desired_mask]
+        star_mass = star_mass[desired_mask]
+        SFR       =       SFR[desired_mask]
+        Zstar     =     Zstar[desired_mask]
+        Zgas      =      Zgas[desired_mask]
+        R_gas     =     R_gas[desired_mask]
+        R_star    =    R_star[desired_mask]
+        
+        all_Zgas     += list(Zgas     )
+        all_Zstar    += list(Zstar    )
+        all_star_mass+= list(star_mass)
+        all_gas_mass += list(gas_mass )
+        all_SFR      += list(SFR      )
+        all_R_gas    += list(R_gas    )
+        all_R_star   += list(R_star   )
+
+        redshifts += list( np.ones(len(Zgas)) * redshift )
+        
+        redshift  += 1
+        
+    Zgas      = np.array(all_Zgas      )
+    Zstar     = np.array(all_Zstar     )
+    star_mass = np.array(all_star_mass )
+    gas_mass  = np.array(all_gas_mass  )
+    SFR       = np.array(all_SFR       )
+    R_gas     = np.array(all_R_gas     )
+    R_star    = np.array(all_R_star    )
+    redshifts = np.array(redshifts     )
+
+    Zstar /= Zsun
+    OH     = Zgas * (zo/xh) * (1.00/16.00)
+
+    Zgas      = np.log10(OH) + 12
+
+    # Get rid of nans and random values -np.inf
+    nonans    = ~(np.isnan(Zgas)) & ~(np.isnan(Zstar)) & (Zstar > 0.0) & (Zgas > 0.0) 
+
+    sSFR      = SFR/star_mass
+    
+    gas_mass  = gas_mass [nonans]
+    star_mass = star_mass[nonans]
+    SFR       = SFR      [nonans]
+    sSFR      = sSFR     [nonans]
+    Zstar     = Zstar    [nonans]
+    Zgas      = Zgas     [nonans]
+    redshifts = redshifts[nonans]
+    R_gas     = R_gas    [nonans]
+    R_star    = R_star   [nonans]
+
+    star_mass     = np.log10(star_mass)
+    Zstar         = np.log10(Zstar)
+
+    alphas = np.linspace(0,1,100)
+
+    disps = np.ones(len(alphas)) * np.nan
+    
+    a_s, b_s = np.ones( len(alphas) ), np.ones( len(alphas) )
+    
+    if (STARS_OR_GAS == "GAS"):
+        Z_use = Zgas
+    elif (STARS_OR_GAS == "STARS"):
+        Z_use = Zstar
+
+    muCurrent = star_mass - alpha*np.log10( SFR )
+
+    a, b = np.polyfit( muCurrent, Z_use, 1 )
+
+    return alpha, a, b
     
 def line(data, a, b):
     return a*data + b
@@ -582,6 +774,53 @@ def sfmscut(m0, sfr0, THRESHOLD=-5.00E-01):
     sfmsbool[idxbs] = 1
     sfmsbool = (sfmsbool == 1)
     return sfmsbool        
+
+def getMedians(x,y,z,width=0.1,step=0.05,return_masks=False,min_samp=10):
+    start = np.min(x)
+    end   = np.max(x)
+    
+    current = start
+    
+    medians = []
+    xs      = []
+    medians2= []
+    if (return_masks):
+        masks = []
+    
+    while (current < end + 2*step):
+        
+        mask = ((x > (current)) & (x < (current + width)))
+        if (return_masks):
+            masks.append( mask )
+        
+        if (len(y[mask]) > min_samp):
+            medians.append( np.median( y[mask] ) )
+            medians2.append( np.median( z[mask] ) )
+        else:
+            medians.append( np.nan )
+            medians2.append( np.nan )
+            
+        xs.append( current )
+    
+        current += step
+    
+    medians = np.array(medians)
+    medians2= np.array(medians2)
+    xs      = np.array(xs)
+    
+    nonans = ~(np.isnan(medians)) & ~(np.isnan(medians2))
+    
+    xs      = xs[nonans] 
+    medians = medians[nonans]
+    medians2= medians2[nonans]
+
+    if (return_masks):
+        masks = np.array(masks)
+        masks = masks[nonans]
+        masks = list(masks)
+        return xs, medians, medians2, masks
+    else:
+        return xs, medians, medians2
 
 
 if __name__ == "__main__":
