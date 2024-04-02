@@ -15,24 +15,24 @@ import matplotlib.gridspec as gridspec
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 
-mpl.rcParams['text.usetex']        = True
-mpl.rcParams['font.family']        = 'serif'
+mpl.rcParams['text.usetex'] = True
+mpl.rcParams['font.family'] = 'serif'
 
 fs_og = 20
 mpl.rcParams['font.size'] = fs_og
-mpl.rcParams['axes.linewidth'] = 2.25
+mpl.rcParams['axes.linewidth'] = 2.25*1.25
 mpl.rcParams['xtick.direction'] = 'in'
 mpl.rcParams['ytick.direction'] = 'in'
 mpl.rcParams['xtick.minor.visible'] = 'true'
 mpl.rcParams['ytick.minor.visible'] = 'true'
-mpl.rcParams['xtick.major.width'] = 1.5
-mpl.rcParams['ytick.major.width'] = 1.5
-mpl.rcParams['xtick.minor.width'] = 1.0
-mpl.rcParams['ytick.minor.width'] = 1.0
-mpl.rcParams['xtick.major.size'] = 7.5
-mpl.rcParams['ytick.major.size'] = 7.5
-mpl.rcParams['xtick.minor.size'] = 3.5
-mpl.rcParams['ytick.minor.size'] = 3.5
+mpl.rcParams['xtick.major.width'] = 1.5*1.25
+mpl.rcParams['ytick.major.width'] = 1.5*1.25
+mpl.rcParams['xtick.minor.width'] = 1.0*1.25
+mpl.rcParams['ytick.minor.width'] = 1.0*1.25
+mpl.rcParams['xtick.major.size'] = 8
+mpl.rcParams['ytick.major.size'] = 8
+mpl.rcParams['xtick.minor.size'] = 4.5
+mpl.rcParams['ytick.minor.size'] = 4.5
 mpl.rcParams['xtick.top'] = True
 mpl.rcParams['ytick.right'] = True
 
@@ -271,7 +271,7 @@ def get_one_redshift(BLUE_DIR,snap,STARS_OR_GAS='gas'):
         
     return star_mass, Z_use, SFR
     
-def get_z0_alpha(sim,STARS_OR_GAS='gas'):
+def get_z0_alpha(sim,STARS_OR_GAS='gas',function=None):
     STARS_OR_GAS = STARS_OR_GAS.upper()
     sim = sim.upper()
     
@@ -352,8 +352,7 @@ def get_z0_alpha(sim,STARS_OR_GAS='gas'):
     Zstar         = np.log10(Zstar)
 
     alphas = np.linspace(0,1,100)
-    a_s    = np.zeros( len(alphas) ) # y = ax + b
-    b_s    = np.zeros( len(alphas) )
+    all_params = []
 
     disps = np.ones(len(alphas)) * np.nan
     
@@ -364,30 +363,95 @@ def get_z0_alpha(sim,STARS_OR_GAS='gas'):
 
     for index, alpha in enumerate(alphas):
 
-        muCurrent  = star_mass - alpha*np.log10( SFR )
-
-        mu_fit = muCurrent
-        Z_fit  = Z_use
+        mu_fit  = star_mass - alpha*np.log10( SFR )
         
-        popt = np.polyfit(mu_fit, Z_fit, 1)
-        a_s[index], b_s[index] = popt
-        interp = np.polyval( popt, mu_fit )
+        Z_fit  =  Z_use
+        mu_fit = mu_fit
+        
+        params, cov = curve_fit(function,mu_fit, Z_fit)
+        all_params.append(params)
+        interp = function(mu_fit, *params)
         
         disps[index] = np.std( np.abs(Z_fit) - np.abs(interp) ) 
         
     argmin = np.argmin(disps)
 
-    return round( alphas[argmin], 2 ), a_s[argmin], b_s[argmin]
+    return round( alphas[argmin], 2 ), *all_params[argmin]
 
-def plot_fake_MZR(sim,alpha_z0,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS'):
+def get_allz_alpha(sim,STARS_OR_GAS='gas',function=None):
+    STARS_OR_GAS = STARS_OR_GAS.upper()
+    sim = sim.upper()
+    
+    star_mass, SFR, Z_use, redshifts = get_all_redshifts(sim, False, STARS_OR_GAS)
+
+    alphas = np.linspace(0,1,100)
+    all_params = []
+
+    disps = np.ones(len(alphas)) * np.nan
+    
+    if (STARS_OR_GAS == "GAS"):
+        Z_use = Zgas
+    elif (STARS_OR_GAS == "STARS"):
+        Z_use = Zstar
+
+    for index, alpha in enumerate(alphas):
+
+        mu_fit  = star_mass - alpha*np.log10( SFR )
+
+        Z_fit  =  Z_use
+        mu_fit = mu_fit
+        
+        params, cov = curve_fit(function,mu_fit, Z_fit)
+        all_params.append(params)
+        interp = function(mu_fit, *params)
+        
+        disps[index] = np.std( np.abs(Z_fit) - np.abs(interp) ) 
+        
+    argmin = np.argmin(disps)
+
+    return round( alphas[argmin], 2 ), *all_params[argmin]
+
+def get_idv_alpha(star_mass,SFR,Z_use,params,function=None):
+    alphas = np.linspace(0,1,100)
+    disps = np.ones(len(alphas)) * np.nan
+
+    for index, alpha in enumerate(alphas):
+        mu_fit  = star_mass - alpha*np.log10( SFR )
+
+        Z_fit  =  Z_use
+        mu_fit = mu_fit
+        
+        params, cov = curve_fit(function,mu_fit, Z_fit)
+        all_params.append(params)
+        interp = function(mu_fit, *params)
+        
+        disps[index] = np.std( np.abs(Z_fit) - np.abs(interp) ) 
+        
+    argmin = np.argmin(disps)
+
+    return round(alphas[argmin], 2)
+
+def plot_fake_MZR(sim,alpha_z0,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS',
+                  Type = 'linear'):
+    print(sim.upper())
+    Type_options = ['linear','fourth-order']
+    if Type not in Type_options:
+        print('#'*100)
+        print('Type not available')
+        print('#'*100)
+        return
+    
+    if Type == 'linear':
+        func = linear_mu
+    elif Type == 'fourth-order':
+        func = fourth_order_mu
     
     STARS_OR_GAS = STARS_OR_GAS.upper()
     sim = sim.upper()
     
     snapshots, snap2z, BLUE_DIR = switch_sim(sim)
         
-    z0_MZR = None
-    z0_SFMS = None
+    z0_params = None
     
     for index, snap in enumerate(snapshots):
         
@@ -397,27 +461,40 @@ def plot_fake_MZR(sim,alpha_z0,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS'):
         MZR_M_real, MZR_Z_real, real_SFR = getMedians(star_mass,Z_true,SFR,
                                                       return_masks=False)
         
+        mu = MZR_M_real - alpha_z0 * np.log10(real_SFR)
+        
         if index == 0:
-            z0_MZR = interp1d(MZR_M_real, MZR_Z_real, fill_value='extrapolate')
-            z0_SFMS = interp1d(MZR_M_real, real_SFR, fill_value='extrapolate')
+            z0_params, cov = curve_fit(func, mu, MZR_Z_real)
             
         ax_real.plot( MZR_M_real, MZR_Z_real, color=f'C{index}',
                       label=r'$z=%s$' %index)
         
-        Z_pred = z0_MZR(star_mass) - alpha_z0 * np.log10(SFR / z0_SFMS(star_mass))
+        mu = MZR_M_real - alpha_z0 * np.log10(real_SFR)
+        MZR_Z_fake = func(mu, *z0_params)
         
-        MZR_M_fake, MZR_Z_fake, fake_SFR = getMedians(star_mass,Z_pred,SFR,
-                                                      return_masks=False)
-        
-        ax_fake.plot( MZR_M_fake, MZR_Z_fake, color=f'C{index}',
+        ax_fake.plot( MZR_M_real, MZR_Z_fake, color=f'C{index}',
                       label=r'$z=%s$' %index)
         
         offset = MZR_Z_real - MZR_Z_fake
+        print(f'\tMedian Offset: {np.median(offset)}')
         
         ax_offsets.plot( MZR_M_real, offset, color=f'C{index}',
-                      label=r'$z=%s$' %index )
+                         label=r'$z=%s$' %index )
         
-def plot_fake_MZR_find_alpha(sim,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS'):
+def plot_fake_MZR_find_alpha(sim,alpha_z0,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS',
+                             Type='linear'):
+    
+    Type_options = ['linear','fourth-order']
+    if Type not in Type_options:
+        print('#'*100)
+        print('Type not available')
+        print('#'*100)
+        return
+    
+    if Type == 'linear':
+        func = linear_mu
+    elif Type == 'fourth-order':
+        func = fourth_order_mu
     
     STARS_OR_GAS = STARS_OR_GAS.upper()
     sim = sim.upper()
@@ -426,6 +503,7 @@ def plot_fake_MZR_find_alpha(sim,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS'):
         
     z0_MZR = None
     z0_SFMS = None
+    z0_params = None
     
     for index, snap in enumerate(snapshots):
         
@@ -435,38 +513,45 @@ def plot_fake_MZR_find_alpha(sim,ax_real,ax_fake,ax_offsets,STARS_OR_GAS='GAS'):
         MZR_M_real, MZR_Z_real, real_SFR = getMedians(star_mass,Z_true,SFR,
                                                       return_masks=False)
         
+        mu = MZR_M_real - alpha_z0 * np.log10(real_SFR)
+
         if index == 0:
-            z0_MZR = interp1d(MZR_M_real, MZR_Z_real, fill_value='extrapolate')
-            z0_SFMS = interp1d(MZR_M_real, real_SFR, fill_value='extrapolate')
+            z0_params, cov = curve_fit(func, mu, MZR_Z_real)
             
         ax_real.plot( MZR_M_real, MZR_Z_real, color=f'C{index}',
-                      label=r'$z=%s$' %index)
+                      label=r'$z=%s$' %index )
         
         alphas = np.linspace(0,1,100)
         total_offsets = np.empty_like(alphas)
         
         for j, alpha in enumerate(alphas):
-        
-            MZR_Z_fake = z0_MZR(MZR_M_real) - alpha * np.log10(real_SFR / z0_SFMS(MZR_M_real))
-
-            ##### WHAT DO WE WANT TO DO ABOUT THIS #####
+            mu = MZR_M_real - alpha * np.log10(real_SFR)
+            MZR_Z_fake = func(mu, *z0_params)
+            
+            ##### WHAT DO WE WANT TO DO ABOUT THIS? #####
             total_offsets[j] = np.sum(np.abs(MZR_Z_real - MZR_Z_fake))
-            #np.median(np.abs(MZR_Z_real - MZR_Z_fake))
             
         best_alpha = alphas[np.argmin(total_offsets)]
         print(f'{sim.upper()} z={index}: alpha = {best_alpha:.2f}')
         
-        MZR_Z_fake = z0_MZR(MZR_M_real) - best_alpha * np.log10(real_SFR / z0_SFMS(MZR_M_real))
+        mu = MZR_M_real - best_alpha * np.log10(real_SFR)
+        MZR_Z_fake = func(mu, *z0_params)
         
         offset = MZR_Z_real - MZR_Z_fake
+        print(f'\tMedian Offset: {np.median(offset)}')
         
         ax_fake.plot( MZR_M_real, MZR_Z_fake, color=f'C{index}',
                       label=r'$z=%s$' %index)
         
-        ax_offsets.plot( MZR_M_real, offset, color=f'C{index}',
-                      label=r'$z=%s$' %index )
+        ax_offsets.plot( MZR_M_real, offset, color=f'C{index}', label=r'$z=%s$' %index )
+
+def linear_mu(mu, a, b):
+    return a * mu + b
         
+def fourth_order_mu(mu, a, b, c, d, e):
+    return a * mu**4 + b * mu**3 + c * mu**2 + d * mu + e
     
+        
 def modified_FMR(sim,one_slope=True,STARS_OR_GAS="gas"):
     STARS_OR_GAS = STARS_OR_GAS.upper()
     
@@ -787,7 +872,7 @@ def getMedians(x,y,z,width=0.1,step=0.05,return_masks=False,min_samp=10):
     if (return_masks):
         masks = []
     
-    while (current < end + 2*step):
+    while (current < end + step):
         
         mask = ((x > (current)) & (x < (current + width)))
         if (return_masks):
