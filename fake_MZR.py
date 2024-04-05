@@ -16,7 +16,7 @@ STARS_OR_GAS = "gas".upper()
 
 for all_z_fit in [False, True]:
     for function in [linear]:#, fourth_order]:
-        for sim in ['eagle']:#sims
+        for sim in sims:
             plt.clf()
             fig, axs = plt.subplots(1,4,figsize=(11,4),
                                     gridspec_kw={'width_ratios': [1, 1, 0.45, 1]})
@@ -71,6 +71,7 @@ for all_z_fit in [False, True]:
             plt.subplots_adjust(wspace=0.0)
             
             save_str = "Figure5" if all_z_fit else "Figure3"
+            save_str += ("_" +sim) if sim != "eagle" else ""
             save_str += ".pdf"
             
             plt.savefig( savedir + save_str, bbox_inches='tight')

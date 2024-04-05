@@ -170,6 +170,7 @@ def make_FMR_fig(sim,all_z_fit,STARS_OR_GAS="gas",savedir="./",
     plt.tight_layout()   
         
     save_str = "Figure4" if all_z_fit else "Figure1"
+    save_str += ("_" + sim.lower()) if sim != "EAGLE" else ""
     save_str += ".pdf"
     
     plt.savefig( savedir + save_str, bbox_inches='tight' )

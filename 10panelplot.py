@@ -26,6 +26,6 @@ STARS_OR_GAS = "gas".upper()
 
 for all_z_fit in [True, False]:
     for function in [linear]:#, fourth_order]:
-        for sim in ['eagle']:#sims:
+        for sim in sims:
             make_FMR_fig(sim, all_z_fit, savedir=savedir, 
                          function=function)
