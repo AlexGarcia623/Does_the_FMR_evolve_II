@@ -8,7 +8,7 @@ import cmasher as cmr
 
 from helpers import (
     WHICH_SIM_TEX, get_z0_alpha, get_all_redshifts,
-    get_one_redshift, getMedians, switch_sim, get_allz_alpha,
+    get_one_redshift, get_medians, switch_sim, get_allz_alpha,
     get_idv_alpha
 )
 
@@ -54,7 +54,9 @@ def make_FMR_fig(sim,all_z_fit,STARS_OR_GAS="gas",savedir="./",
 
     hist = Hist1/Hist2
 
-    mappable = axBig.pcolormesh( xedges, yedges, hist, vmin = 0, vmax = 8, cmap=CMAP_TO_USE, rasterized=True )
+    mappable = axBig.pcolormesh( 
+        xedges, yedges, hist, vmin = 0, vmax = 8, cmap=CMAP_TO_USE, rasterized=True
+    )
 
     cbar = plt.colorbar( mappable, label=r"${\rm Redshift}$", orientation='horizontal' )
     cbar.ax.set_xticks(np.arange(0,9))
@@ -67,8 +69,6 @@ def make_FMR_fig(sim,all_z_fit,STARS_OR_GAS="gas",savedir="./",
     elif (STARS_OR_GAS == "STARS"):
         plt.ylabel(r'$\log(Z_* [Z_\odot])$')
     plt.xlabel(r'$\mu_{%s} = \log M_* - %s\log{\rm SFR}$' %(min_alpha,min_alpha))
-
-    # axBig.text( 0.75, 0.1 , r"${\rm Local~ FMR}$"  , transform=axBig.transAxes, ha='center' )
 
     axBig.text( 0.05, 0.9, "%s" %WHICH_SIM_TEX[sim], transform=axBig.transAxes )
 
@@ -143,7 +143,10 @@ def make_FMR_fig(sim,all_z_fit,STARS_OR_GAS="gas",savedir="./",
         vmin = 1 - time
         vmax = 9 - time
 
-        ax.pcolormesh( current_x, current_y, current_hist, vmin = vmin, vmax = vmax, cmap=CMAP_TO_USE, rasterized=True )
+        ax.pcolormesh( 
+            current_x, current_y, current_hist, vmin = vmin, vmax = vmax,
+            cmap=CMAP_TO_USE, rasterized=True 
+        )
 
         ax.plot( plot_mu, best_line, color='k', lw=6 )
 
@@ -205,15 +208,12 @@ def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
     for index, snap in enumerate(snapshots):
         
         star_mass, Z_true, SFR = get_one_redshift(BLUE_DIR,snap,
-                                                 STARS_OR_GAS=STARS_OR_GAS)
+                                                  STARS_OR_GAS=STARS_OR_GAS)
         
-        MZR_M_real, MZR_Z_real, real_SFR = getMedians(star_mass,Z_true,SFR,
-                                                      return_masks=False)
-        
-        ## Something like this
-        ##if idv_alpha:
-            ##min_alpha = get_idv_alpha(star_mass, Z_true, SFR, params)
-        
+        MZR_M_real, MZR_Z_real, real_SFR = get_medians(star_mass,Z_true,SFR,
+                                                       width=0.05,step=0.1,
+                                                       min_samp=15)
+                
         color = colors[index]
         
         mu = MZR_M_real - min_alpha * np.log10(real_SFR)
@@ -230,7 +230,7 @@ def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
                       label=r'$z=%s$' %index, lw=lw )
         
         offset = MZR_Z_real - MZR_Z_fake
-        sum_residuals += sum(offset**2)
+        sum_residuals += sum(offset**2) / len(offset)
         print(f'\tMedian Offset: {np.median(offset)}')
         
         ax_offsets.plot( MZR_M_real, offset, color=color,
@@ -242,7 +242,8 @@ def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
             if all_z_fit:
                 txt_loc_x = 0.05
                 ha = 'left'
-            ax_offsets.text( txt_loc_x, 0.07, r'$\sum s^2 = ~$' + fr"${sum_residuals:0.3f}$",
+            ax_offsets.text( txt_loc_x, 0.07,
+                             r'${\rm MSE} = \;$' + fr"${sum_residuals:0.3f}$" + r'$\;({\rm dex })^2$',
                              transform=ax_offsets.transAxes, fontsize=16, ha=ha )
         
     return colors

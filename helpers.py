@@ -860,53 +860,31 @@ def sfmscut(m0, sfr0, THRESHOLD=-5.00E-01):
     sfmsbool = (sfmsbool == 1)
     return sfmsbool        
 
-def getMedians(x,y,z,width=0.1,step=0.05,return_masks=False,min_samp=10):
+def get_medians(x,y,z,width=0.05,step=0.1,min_samp=15):
     start = np.min(x)
     end   = np.max(x)
     
-    current = start
+    xs = np.arange(start,end,step)
+    median_y = np.zeros( len(xs) )
+    median_z = np.zeros( len(xs) )
     
-    medians = []
-    xs      = []
-    medians2= []
-    if (return_masks):
-        masks = []
-    
-    while (current < end + step):
-        
+    for index, current in enumerate(xs):
         mask = ((x > (current)) & (x < (current + width)))
-        if (return_masks):
-            masks.append( mask )
         
         if (len(y[mask]) > min_samp):
-            medians.append( np.median( y[mask] ) )
-            medians2.append( np.median( z[mask] ) )
+            median_y[index] = np.median(y[mask])
+            median_z[index] = np.median(z[mask])
         else:
-            medians.append( np.nan )
-            medians2.append( np.nan )
-            
-        xs.append( current )
+            median_y[index] = np.nan
+            median_z[index] = np.nan
+        
+    nonans = ~(np.isnan(median_y)) & ~(np.isnan(median_z))
     
-        current += step
-    
-    medians = np.array(medians)
-    medians2= np.array(medians2)
-    xs      = np.array(xs)
-    
-    nonans = ~(np.isnan(medians)) & ~(np.isnan(medians2))
-    
-    xs      = xs[nonans] 
-    medians = medians[nonans]
-    medians2= medians2[nonans]
+    xs = xs[nonans] + step/2
+    median_y = median_y[nonans]
+    median_z = median_z[nonans]
 
-    if (return_masks):
-        masks = np.array(masks)
-        masks = masks[nonans]
-        masks = list(masks)
-        return xs, medians, medians2, masks
-    else:
-        return xs, medians, medians2
-
+    return xs, median_y, median_z
 
 if __name__ == "__main__":
     

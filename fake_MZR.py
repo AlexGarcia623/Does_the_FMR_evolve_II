@@ -31,7 +31,6 @@ for all_z_fit in [False, True]:
             colors = make_MZR_prediction_fig(sim,all_z_fit, ax_real, ax_fake,
                                              ax_offsets,function = function)
 
-
             for ax in axs:
                 ax.set_xlabel(r'$\log M_*$')
 
@@ -49,7 +48,7 @@ for all_z_fit in [False, True]:
             ax_fake.set_yticklabels([])
             ax_offsets.set_ylabel(r'${\rm True} - {\rm Predicted}$')
 
-            ax_fake.text(0.95,0.05,WHICH_SIM_TEX[sim.upper()],transform=ax_fake.transAxes,
+            ax_fake.text(0.95,0.07,WHICH_SIM_TEX[sim.upper()],transform=ax_fake.transAxes,
                          ha='right')
 
             ax_real.text(0.05,0.875,r'${\rm True}$',transform=ax_real.transAxes)
