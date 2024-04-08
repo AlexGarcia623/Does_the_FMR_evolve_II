@@ -181,14 +181,17 @@ def make_FMR_fig(sim,all_z_fit,STARS_OR_GAS="gas",savedir="./",
 
 def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
                             STARS_OR_GAS="gas",savedir="./",
-                            function = fourth_order):
+                            function = fourth_order,
+                            THRESHOLD = -5.00E-01,
+                            width = 0.05, step = 0.1,
+                            min_samp = 15):
     
     STARS_OR_GAS = STARS_OR_GAS.upper()
     sim = sim.upper()
     
     snapshots, snap2z, BLUE_DIR = switch_sim(sim)
     
-    star_mass, SFR, Z_use, redshifts = get_all_redshifts(sim,all_z_fit)
+    star_mass, SFR, Z_use, redshifts = get_all_redshifts(sim,all_z_fit,THRESHOLD=THRESHOLD)
 
     min_alpha, *params = get_z0_alpha(sim, function=function)
     best_mu = star_mass - min_alpha*np.log10(SFR)
@@ -204,6 +207,8 @@ def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
     colors = [ cmap(x) for x in newcolors[::-1] ]
     
     sum_residuals = 0
+    n_resids = 0
+    MSE = 0
     
     for index, snap in enumerate(snapshots):
         
@@ -211,8 +216,8 @@ def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
                                                   STARS_OR_GAS=STARS_OR_GAS)
         
         MZR_M_real, MZR_Z_real, real_SFR = get_medians(star_mass,Z_true,SFR,
-                                                       width=0.05,step=0.1,
-                                                       min_samp=15)
+                                                       width=width,step=step,
+                                                       min_samp=min_samp)
                 
         color = colors[index]
         
@@ -230,23 +235,26 @@ def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
                       label=r'$z=%s$' %index, lw=lw )
         
         offset = MZR_Z_real - MZR_Z_fake
-        sum_residuals += sum(offset**2) / len(offset)
-        print(f'\tMedian Offset: {np.median(offset)}')
+
+        sum_residuals += sum(offset**2)
+        n_resids += len(offset)
         
         ax_offsets.plot( MZR_M_real, offset, color=color,
                          label=r'$z=%s$' %index, lw=lw )
         
         if index == len(snapshots) - 1:
+            MSE = sum_residuals / n_resids
+            print(f'\tMSE: {MSE:.3f} (dex)^2')
             txt_loc_x = 0.95
             ha = 'right'
             if all_z_fit:
                 txt_loc_x = 0.05
                 ha = 'left'
             ax_offsets.text( txt_loc_x, 0.07,
-                             r'${\rm MSE} = \;$' + fr"${sum_residuals:0.3f}$" + r'$\;({\rm dex })^2$',
+                             r'${\rm MSE} = \;$' + fr"${MSE:0.3f}$" + r'$\;({\rm dex })^2$',
                              transform=ax_offsets.transAxes, fontsize=16, ha=ha )
         
-    return colors
+    return colors, MSE
 
 if __name__ == "__main__":
     

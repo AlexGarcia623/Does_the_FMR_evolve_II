@@ -113,7 +113,7 @@ def switch_sim(WHICH_SIM):
         }
     return snapshots, snap2z, BLUE_DIR
 
-def get_all_redshifts(sim,all_z_fit,STARS_OR_GAS='gas'):
+def get_all_redshifts(sim,all_z_fit,STARS_OR_GAS='gas',THRESHOLD=-5.00E-01):
     
     STARS_OR_GAS = STARS_OR_GAS.upper()
     sim = sim.upper()
@@ -142,7 +142,7 @@ def get_all_redshifts(sim,all_z_fit,STARS_OR_GAS='gas'):
         R_gas     = np.load( currentDir + 'R_gas.npy' )
         R_star    = np.load( currentDir + 'R_star.npy' )
         
-        sfms_idx = sfmscut(star_mass, SFR)
+        sfms_idx = sfmscut(star_mass, SFR, THRESHOLD)
 
         desired_mask = ((star_mass > 1.00E+01**(m_star_min)) &
                         (star_mass < 1.00E+01**(m_star_max)) &
@@ -211,7 +211,7 @@ def get_all_redshifts(sim,all_z_fit,STARS_OR_GAS='gas'):
     return star_mass, SFR, Z_use, redshifts
     
 
-def get_one_redshift(BLUE_DIR,snap,STARS_OR_GAS='gas'):
+def get_one_redshift(BLUE_DIR,snap,STARS_OR_GAS='gas',THRESHOLD=-5.00E-01):
     
     STARS_OR_GAS = STARS_OR_GAS.upper()
     
@@ -225,7 +225,6 @@ def get_one_redshift(BLUE_DIR,snap,STARS_OR_GAS='gas'):
     R_gas     = np.load( currentDir + 'R_gas.npy' )
     R_star    = np.load( currentDir + 'R_star.npy' )
 
-    THRESHOLD = -5.00E-01
     sfms_idx = sfmscut(star_mass, SFR, THRESHOLD)
 
     desired_mask = ((star_mass > 1.00E+01**(m_star_min)) &

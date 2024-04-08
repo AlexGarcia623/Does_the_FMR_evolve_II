@@ -28,8 +28,8 @@ for all_z_fit in [False, True]:
 
             ax_blank.axis('off')
             
-            colors = make_MZR_prediction_fig(sim,all_z_fit, ax_real, ax_fake,
-                                             ax_offsets,function = function)
+            colors, MSE = make_MZR_prediction_fig(sim,all_z_fit, ax_real, ax_fake,
+                                                  ax_offsets,function = function)
 
             for ax in axs:
                 ax.set_xlabel(r'$\log M_*$')
