@@ -210,8 +210,8 @@ def do(ax,sim,c,all_z_fit,STARS_OR_GAS='gas'):
         
         inner_quartile = iqr(offsets)
         
-        err_down = np.percentile(offsets,25) - 1.5*inner_quartile
-        err_up   = np.percentile(offsets,75) + 1.5*inner_quartile
+        err_down = np.percentile(offsets,16) #- 1.5*inner_quartile
+        err_up   = np.percentile(offsets,84) #+ 1.5*inner_quartile
         
         err_down = median - err_down
         err_up = err_up - median

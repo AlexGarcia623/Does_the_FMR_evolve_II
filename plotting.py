@@ -4,6 +4,7 @@ mpl.use('agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
 import cmasher as cmr
 
 from helpers import (
@@ -19,7 +20,7 @@ def linear(mu, a, b):
     return a * mu + b
 
 def make_FMR_fig(sim,all_z_fit,STARS_OR_GAS="gas",savedir="./",
-                 function = fourth_order):
+                 function = fourth_order,verbose=True):
     
     STARS_OR_GAS = STARS_OR_GAS.upper()
     sim = sim.upper()
@@ -30,6 +31,11 @@ def make_FMR_fig(sim,all_z_fit,STARS_OR_GAS="gas",savedir="./",
     best_mu = star_mass - min_alpha*np.log10(SFR)
     if (all_z_fit):
         params, cov = curve_fit(function, best_mu, Z_use)
+
+    if verbose:
+        print(f'Simulation: {sim}')
+        print(f'All_redshift: {all_z_fit}')
+        print(f'Params: {params}')
 
     plot_mu = np.linspace(np.min(best_mu),np.max(best_mu),100)
     best_line = function(plot_mu, *params)
@@ -181,7 +187,7 @@ def make_FMR_fig(sim,all_z_fit,STARS_OR_GAS="gas",savedir="./",
 
 def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
                             STARS_OR_GAS="gas",savedir="./",
-                            function = fourth_order,
+                            function = linear,
                             THRESHOLD = -5.00E-01,
                             width = 0.05, step = 0.1,
                             min_samp = 15):
@@ -218,7 +224,7 @@ def make_MZR_prediction_fig(sim,all_z_fit,ax_real,ax_fake,ax_offsets,
         MZR_M_real, MZR_Z_real, real_SFR = get_medians(star_mass,Z_true,SFR,
                                                        width=width,step=step,
                                                        min_samp=min_samp)
-                
+        
         color = colors[index]
         
         mu = MZR_M_real - min_alpha * np.log10(real_SFR)

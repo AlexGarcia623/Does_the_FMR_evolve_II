@@ -14,6 +14,7 @@ import matplotlib.gridspec as gridspec
 
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
+from scipy import stats
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['font.family'] = 'serif'
@@ -367,7 +368,7 @@ def get_z0_alpha(sim,STARS_OR_GAS='gas',function=None):
         Z_fit  =  Z_use
         mu_fit = mu_fit
         
-        params, cov = curve_fit(function,mu_fit, Z_fit)
+        params, cov = curve_fit(function,mu_fit,Z_fit)
         all_params.append(params)
         interp = function(mu_fit, *params)
         
@@ -549,7 +550,40 @@ def linear_mu(mu, a, b):
         
 def fourth_order_mu(mu, a, b, c, d, e):
     return a * mu**4 + b * mu**3 + c * mu**2 + d * mu + e
+
+def ttest(hypothesized_value,measurements,errors):
+    l = 16
+    # Calculate weighted mean and standard error
+    weighted_mean = np.sum(measurements / errors**2) / np.sum(1 / errors**2)
+    weighted_std_error = np.sqrt(1 / np.sum(1 / errors**2))
+
+    print(f"\t{'Weighted Mean':<{l}}: {weighted_mean:0.3f}")
+    print(f"\t{'Mean':<{l}}: {np.mean(measurements):0.3f}")
+    print(f"\t{'z=0 val':<{l}}: {hypothesized_value:0.3f}")
     
+    # Calculate t-statistic
+    t_stat = (weighted_mean - hypothesized_value) / weighted_std_error
+
+    # Degrees of freedom
+    degrees_freedom = len(measurements) - 1
+
+    # Calculate p-value (two-tailed)
+    p_val = 2 * stats.t.sf(np.abs(t_stat), degrees_freedom)
+    print("\t\tWeighted")
+    print(f"\t{'T-statistic':<{l}}: {t_stat:0.3f}")
+    print(f"\t{'P-value':<{l}}: {p_val:0.3E}")
+    print(f"\t{'Reject':<{l}}: {p_val < 0.05}")
+    
+    t_stat,p_val = stats.ttest_1samp(measurements, hypothesized_value)
+    
+    print("\t\tUnweighted")
+    print(f"\t{'T-statistic':<{l}}: {t_stat:0.3f}")
+    print(f"\t{'P-value':<{l}}: {p_val:0.3E}")
+    print(f"\t{'Reject (p=0.05)':<{l}}: {p_val < 0.05}")
+    
+def estimate_symmetric_error(lower, upper):
+    '''Errors are non symmetric, but not by much. I am just estimating them here'''
+    return (lower + upper) / 2
         
 def modified_FMR(sim,one_slope=True,STARS_OR_GAS="gas"):
     STARS_OR_GAS = STARS_OR_GAS.upper()
