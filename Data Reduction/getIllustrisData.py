@@ -5,10 +5,9 @@ import illustris_python as il
 from os import path, mkdir
 
 WHICH_SIM = "tng".upper()
-OVERWRITE = True
 SF_WEIGHT = True
 
-SAVE_DATA = True
+SAVE_DATA = False
 
 #########################################################################
 ################# YOU WILL PROBABLY HAVE TO CHANGE THIS #################
@@ -133,7 +132,7 @@ for snap in snaps:
     R_star    = sub_cat['SubhaloHalfmassRadType'][subs,4] * (scf / h)
 
     keep_mask = ( (SFR > 0) & (star_mass > 1.00E+8) )
-    
+        
     if SAVE_DATA:
         np.save( currentDir+'Zgas'        , np.array( Zgas      [keep_mask] ) )
         np.save( currentDir+'Zstar'       , np.array( Zstar     [keep_mask] ) )
