@@ -11,12 +11,68 @@ from scipy.optimize import curve_fit
 from matplotlib.colors import LogNorm
 
 from helpers import (
-    get_all_redshifts, WHICH_SIM_TEX, get_z0_alpha
-)
-from plotting import (
-    linear
+    get_all_redshifts, WHICH_SIM_TEX, get_z0_alpha,
+    get_medians
 )
 
+def linear(mu, a, b):
+    return a * mu + b
+
+def get_alpha_evo(sim):
+    sim = sim.upper()
+    z0_mbins, z0_zbins, z0_Sbins = None, None, None
+    
+    redshifts = np.arange(0,9)
+    
+    alpha_evo = np.zeros(len(redshifts))
+    evo_min   = np.zeros(len(redshifts))
+    evo_max   = np.zeros(len(redshifts))
+    
+    if sim == "SIMBA": ## Exclude z=8 in SIMBA
+        redshifts = redshifts[:-1]
+        alpha_evo[-1] = np.nan
+        evo_min[-1] = np.nan
+        evo_max[-1] = np.nan
+    
+    for index, redshift in enumerate(redshifts):
+        mbins, zbins, Sbins = get_avg_relations(sim, redshift)
+        
+        if index == 0:
+            z0_mbins, z0_zbins, z0_Sbins = mbins, zbins, Sbins
+            continue
+            
+        alphas = np.linspace(-1,1,200)
+        disp   = np.zeros(len(alphas))
+
+        all_mbins = np.append(mbins,z0_mbins)
+        all_zbins = np.append(zbins,z0_zbins)
+        all_Sbins = np.append(Sbins,z0_Sbins)
+        
+        for j, alpha in enumerate(alphas):
+            mu = all_mbins - alpha * np.log10(all_Sbins)
+            
+            params = np.polyfit(mu, all_zbins, 1)
+            interp_line = np.polyval(params, mu)
+            
+            disp[j] = np.std( np.abs(all_zbins) - np.abs(interp_line) )
+            
+        argmin = np.argmin(disp)
+        min_alpha = alphas[argmin]
+        min_disp  = disp[argmin]
+        
+        width = 1.05 * min_disp
+        
+        within_uncertainty = alphas[ (disp < width) ]
+
+        min_uncertain = within_uncertainty[0]
+        max_uncertain = within_uncertainty[-1] 
+        
+        alpha_evo[index] = min_alpha
+        evo_min[index] = min_uncertain
+        evo_max[index] = max_uncertain
+        
+    return alpha_evo, evo_min, evo_max
+        
 def get_delta_evo(sim):
     sim = sim.upper()
     z0_mbins, z0_zbins, z0_Sbins = None, None, None
@@ -134,7 +190,7 @@ def delta_evo_plot(sim):
             
             # width -= np.min(loss)
             # width /= np.max(L)
-            ax.plot(deltas, L, lw=3, color=color,label='$z=%s$'%index,
+            ax.plot(deltas, L, lw=4, color=color,label='$z=%s$'%index,
                     linestyle=line_styles[index])
             ax.scatter(delta_evo[index],0,color=color,s=100)
             for line in [evo_min[index],evo_max[index]]:
@@ -142,10 +198,10 @@ def delta_evo_plot(sim):
         
     ax.axhline(0.0,color='k',lw=3)
     ax.axhline(0.05,color='gray',linestyle='--')
-    ax.text(0,-0.01,r'${\rm MSE~Minimum}$',
-            va='top',ha='left',color='k',fontsize=20)
-    ax.text(0,0.05,r'$5\%~{\rm deviation}$',
-            va='bottom',ha='left',color='gray',fontsize=20)
+    ax.text(-0.03,-0.01,r'${\rm MSE~Minimum}\to\delta_{\rm evo}$',
+            va='top',ha='left',color='k',fontsize=22)
+    ax.text(-0.03,0.05,r'$5\%~{\rm deviation}$',
+            va='bottom',ha='left',color='gray',fontsize=22)
     
     ax.set_yticks([])
     
@@ -185,32 +241,6 @@ def median(mass, metallicity, SFR, nbins=25):
     no_nans = ~(np.isnan(zbins)) & ~(np.isnan(Sbins))
     
     return mbins[no_nans], zbins[no_nans], Sbins[no_nans]
-
-def get_medians(x,y,z,width=0.05,step=0.1,min_samp=15):
-    start = np.min(x)
-    end   = np.max(x)
-    
-    xs = np.arange(start,end,step)
-    median_y = np.zeros( len(xs) )
-    median_z = np.zeros( len(xs) )
-    
-    for index, current in enumerate(xs):
-        mask = ((x > (current)) & (x < (current + width)))
-        
-        if (len(y[mask]) > min_samp):
-            median_y[index] = np.median(y[mask])
-            median_z[index] = np.median(z[mask])
-        else:
-            median_y[index] = np.nan
-            median_z[index] = np.nan
-        
-    nonans = ~(np.isnan(median_y)) & ~(np.isnan(median_z))
-    
-    xs = xs[nonans] + step/2
-    median_y = median_y[nonans]
-    median_z = median_z[nonans]
-
-    return xs, median_y, median_z
 
 def get_avg_relations(sim,redshift):
     star_mass, SFR, Z, redshifts = get_all_redshifts(sim, False)

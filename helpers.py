@@ -54,7 +54,8 @@ m_gas_min  = 8.5
 WHICH_SIM_TEX = {
     "TNG":r"${\rm TNG}$",
     "ORIGINAL":r"${\rm Illustris}$",
-    "EAGLE":r"${\rm EAGLE}$"
+    "EAGLE":r"${\rm EAGLE}$",
+    "SIMBA":r"${\rm SIMBA}$"
 }
 
 def switch_sim(WHICH_SIM):
@@ -112,12 +113,33 @@ def switch_sim(WHICH_SIM):
              3:'z=9',
              2:'z=10'
         }
+    elif (WHICH_SIM.upper() == "SIMBA"):
+        snapshots = [151, 105, 79, 62, 51, 42, 36, 30, 26]
+        snap2z = {
+            151:'z=0',
+            105:'z=1',
+             79:'z=2',
+             62:'z=3',
+             51:'z=4',
+             42:'z=5',
+             36:'z=6',
+             30:'z=7',
+             26:'z=8'
+        }
     return snapshots, snap2z, BLUE_DIR
 
 def get_all_redshifts(sim,all_z_fit,STARS_OR_GAS='gas',THRESHOLD=-5.00E-01):
     
     STARS_OR_GAS = STARS_OR_GAS.upper()
     sim = sim.upper()
+    
+    m_star_min = 8.0
+    m_star_max = 12.0
+    m_gas_min  = 8.5
+    
+    if sim == "SIMBA": ## Simba is lower res
+        m_star_min = 9.0 
+        m_gas_min = 9.5
     
     snapshots, snap2z, BLUE_DIR = switch_sim(sim)
     
@@ -143,7 +165,7 @@ def get_all_redshifts(sim,all_z_fit,STARS_OR_GAS='gas',THRESHOLD=-5.00E-01):
         R_gas     = np.load( currentDir + 'R_gas.npy' )
         R_star    = np.load( currentDir + 'R_star.npy' )
         
-        sfms_idx = sfmscut(star_mass, SFR, THRESHOLD)
+        sfms_idx = sfmscut(star_mass, SFR, THRESHOLD, m_star_min)
 
         desired_mask = ((star_mass > 1.00E+01**(m_star_min)) &
                         (star_mass < 1.00E+01**(m_star_max)) &
@@ -226,7 +248,15 @@ def get_one_redshift(BLUE_DIR,snap,STARS_OR_GAS='gas',THRESHOLD=-5.00E-01):
     R_gas     = np.load( currentDir + 'R_gas.npy' )
     R_star    = np.load( currentDir + 'R_star.npy' )
 
-    sfms_idx = sfmscut(star_mass, SFR, THRESHOLD)
+    m_star_min = 8.0
+    m_star_max = 12.0
+    m_gas_min = 8.5
+    
+    if "SIMBA" in BLUE_DIR:
+        m_star_min = 9.0
+        m_gas_min = 9.5
+    
+    sfms_idx = sfmscut(star_mass, SFR, THRESHOLD, m_star_min)
 
     desired_mask = ((star_mass > 1.00E+01**(m_star_min)) &
                     (star_mass < 1.00E+01**(m_star_max)) &
@@ -287,6 +317,14 @@ def get_z0_alpha(sim,STARS_OR_GAS='gas',function=None):
     all_R_star    = []
     
     snap = snapshots[0]
+    
+    m_star_min = 8.0
+    m_star_max = 12.0
+    m_gas_min = 8.5
+    
+    if sim == "SIMBA":
+        m_star_min = 9.0
+        m_gas_min = 9.5
 
     currentDir = BLUE_DIR + 'snap%s/' %snap
 
@@ -298,7 +336,7 @@ def get_z0_alpha(sim,STARS_OR_GAS='gas',function=None):
     R_gas     = np.load( currentDir + 'R_gas.npy' )
     R_star    = np.load( currentDir + 'R_star.npy' )
 
-    sfms_idx = sfmscut(star_mass, SFR)
+    sfms_idx = sfmscut(star_mass, SFR, m_star_min = m_star_min)
 
     desired_mask = ((star_mass > 1.00E+01**(m_star_min)) &
                     (star_mass < 1.00E+01**(m_star_max)) &
@@ -558,8 +596,8 @@ def ttest(hypothesized_value,measurements,errors):
     weighted_std_error = np.sqrt(1 / np.sum(1 / errors**2))
 
     print(f"\t{'Weighted Mean':<{l}}: {weighted_mean:0.3f}")
-    print(f"\t{'Mean':<{l}}: {np.mean(measurements):0.3f}")
-    print(f"\t{'z=0 val':<{l}}: {hypothesized_value:0.3f}")
+    # print(f"\t{'Mean':<{l}}: {np.mean(measurements):0.3f}")
+    print(f"\t{'ref val':<{l}}: {hypothesized_value:0.3f}")
     
     # Calculate t-statistic
     t_stat = (weighted_mean - hypothesized_value) / weighted_std_error
@@ -574,12 +612,12 @@ def ttest(hypothesized_value,measurements,errors):
     print(f"\t{'P-value':<{l}}: {p_val:0.3E}")
     print(f"\t{'Reject':<{l}}: {p_val < 0.05}")
     
-    t_stat,p_val = stats.ttest_1samp(measurements, hypothesized_value)
+#     t_stat,p_val = stats.ttest_1samp(measurements, hypothesized_value)
     
-    print("\t\tUnweighted")
-    print(f"\t{'T-statistic':<{l}}: {t_stat:0.3f}")
-    print(f"\t{'P-value':<{l}}: {p_val:0.3E}")
-    print(f"\t{'Reject (p=0.05)':<{l}}: {p_val < 0.05}")
+#     print("\t\tUnweighted")
+#     print(f"\t{'T-statistic':<{l}}: {t_stat:0.3f}")
+#     print(f"\t{'P-value':<{l}}: {p_val:0.3E}")
+#     print(f"\t{'Reject (p=0.05)':<{l}}: {p_val < 0.05}")
     
 def estimate_symmetric_error(lower, upper):
     '''Errors are non symmetric, but not by much. I am just estimating them here'''
@@ -825,7 +863,7 @@ def scatter_at_fixed_mu( mu, Z ):
         
     return np.array(scatter)
 
-def sfmscut(m0, sfr0, THRESHOLD=-5.00E-01):
+def sfmscut(m0, sfr0, THRESHOLD=-5.00E-01,m_star_min=8.0):
     nsubs = len(m0)
     idx0  = np.arange(0, nsubs)
     non0  = ((m0   > 0.000E+00) & 
@@ -840,7 +878,7 @@ def sfmscut(m0, sfr0, THRESHOLD=-5.00E-01):
     idxbs   = np.ones(len(m), dtype = int) * -1
     cnt     = 0
     mbrk    = 1.0200E+01
-    mstp    = 2.0000E-01
+    mstp    = 5.0000E-02
     mmin    = m_star_min
     mbins   = np.arange(mmin, mbrk + mstp, mstp)
     rdgs    = []
@@ -893,11 +931,11 @@ def sfmscut(m0, sfr0, THRESHOLD=-5.00E-01):
     sfmsbool = (sfmsbool == 1)
     return sfmsbool        
 
-def get_medians(x,y,z,width=0.05,step=0.1,min_samp=15):
+def get_medians(x,y,z,width=0.05,min_samp=15):
     start = np.min(x)
     end   = np.max(x)
     
-    xs = np.arange(start,end,step)
+    xs = np.arange(start,end,width)
     median_y = np.zeros( len(xs) )
     median_z = np.zeros( len(xs) )
     
@@ -913,7 +951,7 @@ def get_medians(x,y,z,width=0.05,step=0.1,min_samp=15):
         
     nonans = ~(np.isnan(median_y)) & ~(np.isnan(median_z))
     
-    xs = xs[nonans] + step/2
+    xs = xs[nonans] + width
     median_y = median_y[nonans]
     median_z = median_z[nonans]
 

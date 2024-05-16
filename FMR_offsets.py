@@ -16,12 +16,16 @@ from helpers import (
 )
 
 mpl.rcParams['font.size'] = 28
-mpl.rcParams['axes.linewidth'] = 3.5
+mpl.rcParams['axes.linewidth'] = 5
 
-mpl.rcParams['xtick.major.width'] = 1.5 * 2.25
-mpl.rcParams['ytick.major.width'] = 1.5 * 2.25
-mpl.rcParams['xtick.minor.width'] = 1.0 * 2.25
-mpl.rcParams['ytick.minor.width'] = 1.0 * 2.25
+mpl.rcParams['xtick.major.width'] = 1.5 * 2
+mpl.rcParams['ytick.major.width'] = 1.5 * 2
+mpl.rcParams['xtick.minor.width'] = 1.0 * 2
+mpl.rcParams['ytick.minor.width'] = 1.0 * 2
+mpl.rcParams['xtick.major.size'] = 12
+mpl.rcParams['ytick.major.size'] = 12
+mpl.rcParams['xtick.minor.size'] = 7.5
+mpl.rcParams['ytick.minor.size'] = 7.5
 
 BLUE = './Data/'
 
@@ -64,31 +68,12 @@ def plot_obs(ax):
         x_err = np.array([ [x_err_down, x_err_up] ]).T
         y_err = np.array([ [y_err_down, y_err_up] ]).T
         if (index == 0):
-            ax.scatter( 100,0, color=color, marker='d', s=80,
-                       label = r'${\rm Mannucci\!+\!(2010)}$', alpha=alpha, facecolor='none' )
+            ax.scatter( 100,0, color=color, marker='d', s=120,
+                       label = r'${\rm Mannucci\!+\!(2010)}$', alpha=1, facecolor='none' )
         
-        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='d', markersize=8,
-                    alpha=alpha, mfc='none' )
-
-    c_i += 1
-    color = colors[c_i]    
-            
-    for index, coords in enumerate(Curti23):
-        x = coords[0]
-        y = coords[1]
-        x_err_up   = Curti23_up[index][0] - x
-        x_err_down = x - Curti23_down[index][0]
-        y_err_up   = Curti23_yup[index][1] - y
-        y_err_down = y - Curti23_ydown[index][1]
-
-        x_err = np.array([ [x_err_down, x_err_up] ]).T
-        y_err = np.array([ [y_err_down, y_err_up] ]).T
-        if (index == 0):
-            ax.scatter( 100,0, color=color, marker='X', s=80,
-                       label = r'${\rm Curti\!+\!(2023)}$', alpha=alpha, facecolor='none' )
-            
-        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='X', markersize=8,
-                    alpha=alpha, mfc='none' )
+        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='d', markersize=10,
+                    alpha=alpha, mfc='white' )
+        ax.plot(x, y, color='white', linestyle='None', marker='d', markersize=10, alpha=1)
 
     c_i += 1
     color = colors[c_i]
@@ -104,11 +89,12 @@ def plot_obs(ax):
         x_err = np.array([ [x_err_down, x_err_up] ]).T
         y_err = np.array([ [y_err_down, y_err_up] ]).T
         if (index == 0):
-            ax.scatter( 100,0, color=color, marker='s', s=80,
-                       label = r'${\rm Langeroodi\;\&\;Hjorth\;(2023)}$', alpha=alpha, facecolor='none' )
+            ax.scatter( 100,0, color=color, marker='s', s=120,
+                       label = r'${\rm Langeroodi\;\&\;Hjorth\;(2023)}$', alpha=1, facecolor='none' )
 
-        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='s', markersize=8,
-                    alpha=alpha, mfc='none' )
+        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='s', markersize=10,
+                    alpha=alpha, mfc='white' )
+        ax.plot(x, y, color='white', linestyle='None', marker='s', markersize=10, alpha=1)
 
     c_i += 1
     color = colors[c_i]
@@ -124,11 +110,12 @@ def plot_obs(ax):
         x_err = np.array([ [x_err_down, x_err_up] ]).T
         y_err = np.array([ [y_err_down, y_err_up] ]).T
         if (index == 0):
-            ax.scatter( 100,0, color=color, marker='^', s=80,
-                       label = r'${\rm Nakajima\!+\!(2023; C20)}$', alpha=alpha, facecolor='none' )
+            ax.scatter( 100,0, color=color, marker='^', s=120,
+                       label = r'${\rm Nakajima\!+\!(2023; C20)}$', alpha=1, facecolor='none' )
 
-        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='^', markersize=8,
-                    alpha=alpha, mfc='none' )
+        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='^', markersize=10,
+                    alpha=alpha, mfc='white' )
+        ax.plot(x, y, color='white', linestyle='None', marker='^', markersize=10, alpha=1)
 
     c_i += 1
     color = colors[c_i]        
@@ -144,12 +131,34 @@ def plot_obs(ax):
         x_err = np.array([ [x_err_down, x_err_up] ]).T
         y_err = np.array([ [y_err_down, y_err_up] ]).T
         if (index == 0):
-            ax.scatter( 100,0, color=color, marker='v', s=80,
-                       label = r'${\rm Nakajima\!+\!(2023; AM13)}$', alpha=alpha, facecolor='none' )
+            ax.scatter( 100,0, color=color, marker='v', s=120,
+                       label = r'${\rm Nakajima\!+\!(2023; AM13)}$', alpha=1, facecolor='none' )
             
-        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='v', markersize=8,
-                    alpha=alpha, mfc='none' )
+        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='v', markersize=10,
+                    alpha=alpha, mfc='white' )
+        ax.plot(x, y, color='white', linestyle='None', marker='v', markersize=10, alpha=1)
 
+    c_i += 1
+    color = colors[c_i]    
+            
+    for index, coords in enumerate(Curti23):
+        x = coords[0]
+        y = coords[1]
+        x_err_up   = Curti23_up[index][0] - x
+        x_err_down = x - Curti23_down[index][0]
+        y_err_up   = Curti23_yup[index][1] - y
+        y_err_down = y - Curti23_ydown[index][1]
+
+        x_err = np.array([ [x_err_down, x_err_up] ]).T
+        y_err = np.array([ [y_err_down, y_err_up] ]).T
+        if (index == 0):
+            ax.scatter( 100,0, color=color, marker='X', s=120,
+                       label = r'${\rm Curti\!+\!(2024)}$', alpha=1, facecolor='none' )
+            
+        ax.errorbar( x, y, xerr=x_err, yerr=y_err, color=color, marker='X', markersize=10,
+                    alpha=alpha, mfc='white' )
+        ax.plot(x, y, color='white', linestyle='None', marker='X', markersize=10, alpha=1)
+        
     return colors
             
 def do(ax,sim,c,all_z_fit,STARS_OR_GAS='gas'):
@@ -165,6 +174,9 @@ def do(ax,sim,c,all_z_fit,STARS_OR_GAS='gas'):
     means       = []
     
     z0_alpha, z0_a, z0_b = 0,0,0
+    
+    if sim == "SIMBA": ## Remove z=8 in SIMBA
+        snapshots = snapshots[:-1]
     
     for gbl_index, snap in enumerate(snapshots):
         star_mass, Z_use, SFR = get_one_redshift(BLUE_DIR,snap,
@@ -218,7 +230,7 @@ def do(ax,sim,c,all_z_fit,STARS_OR_GAS='gas'):
         
         err = np.array([ [err_down, err_up] ]).T
         
-        ax.errorbar( [1*gbl_index],  median, color=c, markersize=8, marker='o',
+        ax.errorbar( [1*gbl_index],  median, color=c, markersize=12, marker='o',
                      yerr=err, capsize=2.5 )
     ## For the second "legend"
     ax.text( 0.05, 0.85, WHICH_SIM_TEX[sim], color=c, va='center', ha='left',
@@ -237,6 +249,8 @@ def do(ax,sim,c,all_z_fit,STARS_OR_GAS='gas'):
     # ax.set_xticklabels( np.arange(0,9) )
     
     redshifts = np.arange(0,9) 
+    if sim == "SIMBA":
+        redshifts = redshifts[:-1]
         
     popt   = np.polyfit( redshifts, means, 1 )
     interp = np.polyval( popt, redshifts )
@@ -246,10 +260,10 @@ def do(ax,sim,c,all_z_fit,STARS_OR_GAS='gas'):
     ax.axhline(0, color='gray', linestyle=':', alpha=0.5)
     return colors
 
-sims   = ['ORIGINAL','TNG','EAGLE']
+sims   = ['ORIGINAL','TNG','EAGLE','SIMBA']
 
-N = 3
-cmap = cmr.get_sub_cmap('cmr.fall', 0.4, 0.7, N=N)
+N = 4
+cmap = cmr.get_sub_cmap('cmr.fall', 0.15, 0.7, N=N)
 newcolors = np.linspace(0, 1, N)
 cols = [ cmap(x) for x in newcolors[::] ]
 
@@ -257,7 +271,7 @@ savedir = './Figures (pdfs)/'
 
 for all_z_fit in [False]:
     plt.clf()
-    fig,axs = plt.subplots(3,1,figsize=(8,13),sharex=True, sharey=True)
+    fig,axs = plt.subplots(4,1,figsize=(8,17),sharex=True, sharey=True)
     
     for index, sim in enumerate(sims):
         ax = axs[index]
@@ -281,12 +295,11 @@ for all_z_fit in [False]:
         for index, text in enumerate(leg.get_texts()):
             text.set_color(colors[index])
 
-    axs[1].set_ylabel( r'$\log {\rm (O/H)} - \log{\rm (O/H)}_{{\rm FMR}}$' )
+    # axs[1].set_ylabel( r'$\log {\rm (O/H)} - \log{\rm (O/H)}_{{\rm FMR}}$' )
 
-    axs[2].set_xlabel( r'${\rm Redshift}$' )
-
-    if all_z_fit:
-        axs[0].set_title(r'${\rm All}~z~{\rm fit}$')
+    axs[2].text(-0.2,1,r'$\log {\rm (O/H)} - \log{\rm (O/H)}_{{\rm FMR}}$',
+                va='center', transform=axs[2].transAxes, rotation=90)
+    axs[3].set_xlabel( r'${\rm Redshift}$' )
 
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.0)
